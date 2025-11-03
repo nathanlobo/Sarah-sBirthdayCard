@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday Sarah</title>
+    <style>
+        :root {
+            --cake-top: #f0e4d0;
+            --cake-middle: #a67b5b;
+            --cake-bottom: #593e2b;
+            --icing: #fcfcfc;
+            --flame-color: #ffac00;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            overflow: hidden;
+            margin: 0;
+        }
+        .card {
+            width: 400px;
+            background: #444;
+            border-radius: 10px;
+            padding: 20px 40px 40px 40px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        h1 {
+            font-size: 2.1rem;
+            margin-bottom: 10px;
+            color: var(--flame-color);
+        }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+        }
+        .cake {
+            padding: 20px 0px;
+            position: relative;
+            width: 250px;
+            height: 180px;
+            margin: 0 auto;
+        }
+
+        .layer {
+            position: absolute;
+            width: 100%;
+            left: 0;
+            border-radius: 5px;
+        }
+        .layer-top {
+            height: 50px;
+            background: var(--cake-top);
+            bottom: 100px;
+        }
+        .layer-middle {
+            height: 50px;
+            background: var(--cake-middle);
+            bottom: 50px;
+        }
+        .layer-bottom {
+            height: 50px;
+            background: var(--cake-bottom);
+            bottom: 0;
+        }
+        .icing {
+            position: absolute;
+            width: 100%;
+            height: 20px;
+            background: var(--icing);
+            bottom: 150px;
+            border-radius: 5px 5px 0 0;
+        }
+        .plate {
+            position: absolute;
+            width: 300px;
+            height: 10px;
+            background: #ccc;
+            bottom: -10px;
+            left: -25px;
+            border-radius: 5px;
+        }
+
+        /* --- The Candles --- */
+        .candles-container {
+            position: absolute;
+            width: 100%;
+            height: 50px;
+            bottom: 155px; /* On top of the icing */
+            display: flex;
+            justify-content: space-around;
+        }
+        
+        .candle {
+            width: 10px;
+            height: 30px;
+            background: #eee;
+            border-radius: 2px;
+            position: relative;
+            /* Stagger the heights for a nice effect */
+        }
+
+        .animations-paused .flame,
+        .animations-paused .rotating-item.enter,
+        .animations-paused .rotating-item.exit {
+            animation-play-state: paused;
+        }
+
+        .flame {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 18px;
+            background: var(--flame-color);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            box-shadow: 0 0 10px var(--flame-color), 0 0 20px var(--flame-color);
+            animation: flicker 1.5s ease-in-out infinite;
+            /* This is our "off" switch */
+            transition: all 0.2s ease;
+        }
+        
+        /* --- The Animations --- */
+        @keyframes flicker {
+            0%, 100% {
+                transform: translateX(-50%) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translateX(-50%) scale(0.95);
+                opacity: 0.8;
+            }
+        }
+        .candle.blown-out .flame {
+            display: none !important;
+        }
+        /* Fallback: also hide flame if flame element itself has blown-out class */
+        .flame.blown-out {
+            display: none !important;
+        }
+        /* Rotating role/text animation */
+        .role {
+            font-size: 1.1rem;
+            margin: 6px 0 18px 0;
+            height: 1.4em; /* keep layout stable */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .rotating-words {
+            display: inline-block;
+            position: relative;
+            overflow: hidden; /* hide the parts that move out */
+            vertical-align: middle;
+            height: 1.2em; /* keep layout stable */
+            padding: 0 8px; /* give breathing room so text isn't clipped */
+            box-sizing: content-box;
+        }
+        .rotating-item {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%, 100%);
+            white-space: nowrap;
+            opacity: 0;
+            width: max-content;
+            text-align: center;
+            z-index: 1;
+        }
+        .rotating-item.enter {
+            animation: enterAnim 600ms cubic-bezier(.22,.9,.33,1) forwards;
+            z-index: 2; /* come on top while entering */
+        }
+        .rotating-item.exit {
+            animation: exitAnim 600ms cubic-bezier(.22,.9,.33,1) forwards;
+            z-index: 1;
+        }
+
+        @keyframes enterAnim {
+            0% { transform: translate(-50%, 100%); opacity: 0; }
+            60% { transform: translate(-50%, -8%); opacity: 1; }
+            100% { transform: translate(-50%, 0%); opacity: 1; }
+        }
+        @keyframes exitAnim {
+            0% { transform: translate(-50%, 0%); opacity: 1; }
+            100% { transform: translate(-50%, -100%); opacity: 0; }
+        }
+
+        /* Respect user preference for reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            .rotating-item, .rotating-item.enter, .rotating-item.exit { animation: none !important; transform: none !important; opacity: 1 !important; position: static; }
+            .role { height: auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="card animations-paused">
+    <h1>Happy 13th Birthday <span id="rotating-words" class="rotating-words" aria-live="polite" aria-atomic="true"></span></h1>
+    <p id="instructions"></p>
+        <div class="cake">
+            <div class="plate"></div>
+            <div class="layer layer-bottom"></div>
+            <div class="layer layer-middle"></div>
+            <div class="layer layer-top"></div>
+            <div class="icing"></div>
+            <div class="candles-container" id="candles-container">
+                </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const candlesContainer = document.getElementById('candles-container');
+            for (let i = 0; i < 13; i++) {
+                const candle = document.createElement('div');
+                candle.className = 'candle';
+                const flame = document.createElement('div');
+                flame.className = 'flame';
+                candle.appendChild(flame);
+                candlesContainer.appendChild(candle);
+            }
+            const instructions = document.getElementById('instructions');
+            const allCandles = document.querySelectorAll('.candle');
+
+            function start(){
+                function resumeAnimations() {
+                    const card = document.querySelector('.card');
+                    if (card) {
+                        card.classList.remove('animations-paused');
+                    }
+                }
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        resumeAnimations();
+                        setupRotatingWords(); // Start rotating words animation
+                        instructions.textContent = "Make your wish and blow!";
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        const audioContext = new AudioCtx();
+                        const analyser = audioContext.createAnalyser();
+                        const microphone = audioContext.createMediaStreamSource(stream);
+                        microphone.connect(analyser);
+                        analyser.fftSize = 256;
+                        const bufferLength = analyser.frequencyBinCount;
+                        const dataArray = new Uint8Array(bufferLength);
+                        const BLOW_THRESHOLD = 65; // hard blow
+                        const LIGHT_BLOW_THRESHOLD = 30; // light blow
+
+                        // cooldown so light-blow doesn't trigger repeatedly in a tight loop
+                        let lastLightTime = 0;
+                        const LIGHT_COOLDOWN = 800; // ms
+
+                        function blowRandomCandles() {
+                            // center-first extinguish: find available candles ordered by closeness to center
+                            const container = document.getElementById('candles-container');
+                            if (!container) return;
+                            const children = Array.from(container.querySelectorAll('.candle'));
+                            if (children.length === 0) return;
+                            const middle = (children.length - 1) / 2;
+                            // map with distance
+                            const available = children
+                                .map((c, i) => ({candle: c, idx: i, dist: Math.abs(i - middle)}))
+                                .filter(item => !item.candle.classList.contains('blown-out'))
+                                .sort((a, b) => a.dist - b.dist);
+                            if (available.length === 0) return;
+                            // choose count between 1 and roughly a third of remaining
+                            const maxToBlow = Math.max(1, Math.floor(available.length / 3));
+                            const count = Math.floor(Math.random() * maxToBlow) + 1;
+                            console.log('Blowing center-first candles, count=', count, 'available=', available.length);
+                            for (let i = 0; i < count; i++) {
+                                const candle = available[i].candle;
+                                candle.classList.add('blown-out');
+                                const flame = candle.querySelector('.flame');
+                                if (flame) flame.classList.add('blown-out');
+                            }
+                        }
+
+                        function blowAllCandles() {
+                            const list = Array.from(document.querySelectorAll('.candle'));
+                            console.log('Blowing ALL candles, count=', list.length);
+                            list.forEach(c => {
+                                c.classList.add('blown-out');
+                                const flame = c.querySelector('.flame');
+                                if (flame) flame.classList.add('blown-out');
+                            });
+                        }
+
+                        function checkBlow() {
+                            analyser.getByteFrequencyData(dataArray);
+                            let sum = 0;
+                            dataArray.forEach(value => sum += value);
+                            let average = sum / bufferLength;
+                            const now = Date.now();
+                            // Hard blow: extinguish all and finish
+                            if (average > BLOW_THRESHOLD) {
+                                instructions.textContent = "Hooray! Happy Birthday!";
+                                blowAllCandles();
+                                try { audioContext.close(); } catch (e) { /* ignore */ }
+                                return; // stop the loop
+                            }
+                            // Light blow: randomly extinguish a few (with cooldown)
+                            if (average > LIGHT_BLOW_THRESHOLD && (now - lastLightTime) > LIGHT_COOLDOWN) {
+                                instructions.textContent = "Blows Harder";
+                                blowRandomCandles();
+                                lastLightTime = now;
+                            }
+                            requestAnimationFrame(checkBlow);
+                        }
+
+                        // Start the loop
+                        checkBlow();
+                    })
+                    .catch(err => {
+                        // Handle errors (e.g., user denied permission)
+                        resumeAnimations();
+                        setupRotatingWords(); // Also start rotating words animation on error
+                        console.error("Mic permission was denied.", err);
+                        instructions.textContent = "Mic permission is needed to blow out the candles — please allow microphone access and reload the page.";
+                    });
+                }
+
+            // Auto-start when content is ready
+            start();
+
+            // --- Rotating words (Happy 13th Birthday Sarah -> Princess -> Loving Niece) ---
+            function setupRotatingWords(){
+                const rotatingContainer = document.getElementById('rotating-words');
+                if (!rotatingContainer) return;
+
+                const words = ['Sarah', 'Princess', 'Loving Niece'];
+                let index = 0;
+                const ANIM_DURATION = 600; // ms — keep in sync with CSS
+                const DISPLAY_TIME = 2000; // ms visible between transitions
+
+                const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+                // Measure widest word and set container min-width (includes padding)
+                // padding in CSS is 8px each side = 16px total
+                const H_PADDING = 16;
+                let maxWidth = 0;
+                const measurer = document.createElement('span');
+                // make sure it's not visible and doesn't affect layout
+                measurer.style.position = 'absolute';
+                measurer.style.visibility = 'hidden';
+                measurer.style.whiteSpace = 'nowrap';
+                measurer.style.transform = 'none';
+                rotatingContainer.appendChild(measurer);
+                for (const w of words) {
+                    measurer.textContent = w;
+                    // offsetWidth gives the rendered width of the content
+                    const wdt = measurer.offsetWidth;
+                    if (wdt > maxWidth) maxWidth = wdt;
+                }
+                // clean up
+                if (measurer.parentNode) measurer.parentNode.removeChild(measurer);
+                // apply minWidth including horizontal padding so text doesn't get clipped
+                rotatingContainer.style.minWidth = Math.ceil(maxWidth + H_PADDING) + 'px';
+
+                if (prefersReducedMotion) {
+                    // Static fallback
+                    rotatingContainer.textContent = words[0];
+                    return;
+                }
+
+                function createSpan(text) {
+                    const s = document.createElement('span');
+                    s.className = 'rotating-item';
+                    s.textContent = text;
+                    return s;
+                }
+
+                // Place the initial visible word
+                let currentSpan = createSpan(words[0]);
+                currentSpan.style.transform = 'translate(-50%, 0%)';
+                currentSpan.style.opacity = '1';
+                rotatingContainer.appendChild(currentSpan);
+
+                // Controlled loop: start next cycle after DISPLAY_TIME, then chain
+                function scheduleNext() {
+                    setTimeout(() => {
+                        const nextIndex = (index + 1) % words.length;
+                        const nextSpan = createSpan(words[nextIndex]);
+                        nextSpan.classList.add('enter');
+                        rotatingContainer.appendChild(nextSpan);
+                        // Force reflow so animation starts reliably
+                        void nextSpan.offsetWidth;
+
+                        // Start exit on current immediately so both animate simultaneously
+                        if (currentSpan && !currentSpan.classList.contains('exit')) {
+                            currentSpan.classList.add('exit');
+                        }
+
+                        // After the animation, remove the old element and set the next as current
+                        setTimeout(() => {
+                            // remove any exit items
+                            const exits = rotatingContainer.querySelectorAll('.rotating-item.exit');
+                            exits.forEach(e => { if (e.parentNode) e.parentNode.removeChild(e); });
+
+                            // Normalize the next span into the resting state
+                            nextSpan.classList.remove('enter');
+                            nextSpan.style.transform = 'translate(-50%, 0%)';
+                            nextSpan.style.opacity = '1';
+
+                            currentSpan = nextSpan;
+                            index = nextIndex;
+                            // schedule the following transition
+                            scheduleNext();
+                        }, ANIM_DURATION);
+                    }, DISPLAY_TIME);
+                }
+
+                scheduleNext();
+            }
+        });
+    </script>
+</body>
+</html>
