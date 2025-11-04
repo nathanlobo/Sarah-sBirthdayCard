@@ -216,6 +216,89 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- Analytics configuration (copied/adapted from othr.html) ---
+            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgXbi_LPG8TjWaOjeT2cPUWeoBRJ3U0DSrJTy3ikAn0hdXJ7nSXedTx_mu3xbHQLLm/exec';
+
+            function getStoredName() {
+                return localStorage.getItem('userName') || null;
+            }
+
+            // Send analytics events. We intentionally DO NOT send any raw audio data
+            // or numeric mic levels. eventData should be a small JSON-serializable object.
+            function sendAnalyticsData(name, eventType, eventData) {
+                try {
+                    const payload = {
+                        userName: name || 'anonymous',
+                        eventType: eventType,
+                        eventData: eventData || {},
+                        page: window.location.pathname,
+                        ts: Date.now()
+                    };
+                    // Prepare payload and send (no debug toggle — always attempt delivery)
+
+                    // Build URL (use query params so simple GET/IMG requests can reach Apps Script)
+                    const urlBase = GOOGLE_SCRIPT_URL;
+                    // Include both the legacy Apps Script parameter names (visitType, visitPage)
+                    // and our local names (eventType, page) so the server recognizes the event.
+                    const qp = `userName=${encodeURIComponent(payload.userName)}&visitType=${encodeURIComponent(payload.eventType)}&eventType=${encodeURIComponent(payload.eventType)}&eventData=${encodeURIComponent(JSON.stringify(payload.eventData))}&visitPage=${encodeURIComponent(payload.page)}&page=${encodeURIComponent(payload.page)}`;
+                    const url = `${urlBase}?${qp}`;
+
+                    // Try navigator.sendBeacon first (best for background/async delivery).
+                    // Build a small form-like payload so Apps Script can read parameters.
+                    let beaconTried = false;
+                    try {
+                        if (navigator && typeof navigator.sendBeacon === 'function') {
+                            const form = new URLSearchParams();
+                            form.append('userName', payload.userName);
+                            // Provide both visitType/visitPage (Apps Script expects these)
+                            form.append('eventType', payload.eventType);
+                            form.append('visitType', payload.eventType);
+                            form.append('eventData', JSON.stringify(payload.eventData));
+                            form.append('page', payload.page);
+                            form.append('visitPage', payload.page);
+                            form.append('ts', String(payload.ts));
+                            const sent = navigator.sendBeacon(GOOGLE_SCRIPT_URL, form);
+                            beaconTried = true;
+                            if (sent) {
+                                console.log('Analytics sent via navigator.sendBeacon:', payload.eventType, payload.eventData);
+                                return; // success — don't fallback
+                            } else {
+                                console.warn('navigator.sendBeacon returned false — falling back');
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('sendBeacon attempt failed:', e);
+                    }
+
+                    // Try POST no-cors next
+                    fetch(url, { method: 'POST', mode: 'no-cors' })
+                      .then(() => {
+                          console.log('Analytics sent (POST attempt):', payload.eventType, payload.eventData);
+                      })
+                      .catch(err => {
+                          console.warn('Analytics send failed (POST):', err);
+                      })
+                      .finally(() => {
+                          // Always try a simple image-beacon GET as last-resort fallback
+                          try {
+                              const beaconUrl = url + `&_beacon=1&_=${Date.now()}`;
+                              const img = new Image();
+                              img.src = beaconUrl;
+                              img.style.display = 'none';
+                              document.body && document.body.appendChild(img);
+                              setTimeout(() => { if (img.parentNode) img.parentNode.removeChild(img); }, 2000);
+                              console.log('Analytics beacon fired (GET):', beaconUrl);
+                              
+                          } catch (e) {
+                              console.warn('Analytics beacon failed:', e);
+                              
+                          }
+                      });
+                } catch (e) {
+                    console.error('sendAnalyticsData error', e);
+                }
+            }
+
             const candlesContainer = document.getElementById('candles-container');
             for (let i = 0; i < 13; i++) {
                 const candle = document.createElement('div');
@@ -237,6 +320,8 @@
                 }
                 navigator.mediaDevices.getUserMedia({ audio: true })
                     .then(stream => {
+                        // Mic permission granted
+                        try { sendAnalyticsData(getStoredName(), 'Mic Permission', { status: 'granted' }); } catch (e) { /* ignore */ }
                         resumeAnimations();
                         setupRotatingWords(); // Start rotating words animation
                         instructions.textContent = "Make your wish and blow!";
@@ -273,21 +358,33 @@
                             const count = Math.floor(Math.random() * maxToBlow) + 1;
                             console.log('Blowing center-first candles, count=', count, 'available=', available.length);
                             for (let i = 0; i < count; i++) {
-                                const candle = available[i].candle;
+                                const item = available[i];
+                                const candle = item.candle;
+                                const candleIdx = item.idx;
                                 candle.classList.add('blown-out');
                                 const flame = candle.querySelector('.flame');
                                 if (flame) flame.classList.add('blown-out');
+                                // Send analytics per extinguished candle (no audio levels)
+                                try {
+                                    sendAnalyticsData(getStoredName(), 'Candle Blown', { candleIndex: candleIdx, method: 'partial-blow' });
+                                } catch (e) { /* ignore */ }
                             }
                         }
 
                         function blowAllCandles() {
                             const list = Array.from(document.querySelectorAll('.candle'));
                             console.log('Blowing ALL candles, count=', list.length);
-                            list.forEach(c => {
+                            list.forEach((c, idx) => {
                                 c.classList.add('blown-out');
                                 const flame = c.querySelector('.flame');
                                 if (flame) flame.classList.add('blown-out');
+                                // Report each candle that is blown out as part of the final blow
+                                try {
+                                    sendAnalyticsData(getStoredName(), 'Candle Blown', { candleIndex: idx, method: 'final-blow' });
+                                } catch (e) { /* ignore */ }
                             });
+                            // Also send a summary event for all blown
+                            try { sendAnalyticsData(getStoredName(), 'All Candles Blown', { count: list.length }); } catch (e) { /* ignore */ }
                         }
 
                         function checkBlow() {
@@ -295,6 +392,7 @@
                             let sum = 0;
                             dataArray.forEach(value => sum += value);
                             let average = sum / bufferLength;
+                            // (no debug logging of audio average)
                             const now = Date.now();
                             // Hard blow: extinguish all and finish
                             if (average > BLOW_THRESHOLD) {
@@ -305,7 +403,7 @@
                             }
                             // Light blow: randomly extinguish a few (with cooldown)
                             if (average > LIGHT_BLOW_THRESHOLD && (now - lastLightTime) > LIGHT_COOLDOWN) {
-                                instructions.textContent = "Blows Harder";
+                                instructions.textContent = "Blow Harder Sarah";
                                 blowRandomCandles();
                                 lastLightTime = now;
                             }
@@ -321,6 +419,7 @@
                         setupRotatingWords(); // Also start rotating words animation on error
                         console.error("Mic permission was denied.", err);
                         instructions.textContent = "Mic permission is needed to blow out the candles — please allow microphone access and reload the page.";
+                        try { sendAnalyticsData(getStoredName(), 'Mic Permission', { status: 'denied' }); } catch (e) { /* ignore */ }
                     });
                 }
 
@@ -419,4 +518,5 @@
         });
     </script>
 </body>
+    
 </html>
